@@ -1,0 +1,16 @@
+{
+    "help": "$help: display all bot commands and abstract\n",
+    "info": "$info: display  personal information\n",
+    "checkin": "$checkin: checkin everyday to earn 200 points\n",
+    "card": "$card: check for cards information\n",
+    "slot": "$slot: spend 100 points for slotting prize\n",
+    "rank": "$rank: display the rank of points\n",
+    "commandTypeError": "Please enter $help to checkout full command list",
+    "successCheckin": "Successfully checkin, get 200 points",
+    "failCheckin": "Failed to checkin, you already checkin today",
+    "successSlot": "Spend 100 points for slotting",
+    "failSlot": "Failed to slot, you don't have enough points",
+    "slotGetPoints": "Congradulates!! You get ",
+    "slotGetCard": "Congradulates!! You get card "
+    
+}
