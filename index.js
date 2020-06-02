@@ -191,9 +191,9 @@ bot.on('message', async function(user, userID, channelID, message, evt){
 
 
 function slot(){
-    let slotGetPoints = GetRandomNum(1, 200);
-    let slotCardIndex = GetRandomNum(0, 9);
-    let random = GetRandomNum(0, 1);
+    let slotGetPoints = getRandomNum(1, 200);
+    let slotCardIndex = getRandomNum(0, 9);
+    let random = getRandomNum(0, 1);
 
     if(random == 0){
         return "Points " + slotGetPoints;
@@ -202,7 +202,7 @@ function slot(){
     }
 }
 
-function GetRandomNum(Min, Max) {
+function getRandomNum(Min, Max) {
     let Range = Max - Min;
     let Rand = Math.random();
     return (Min + Math.round(Rand * Range));
