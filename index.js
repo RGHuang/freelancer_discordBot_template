@@ -1,7 +1,6 @@
 'use strict'
-
-const Discord = require('discord.io');
-const logger = require('winston');
+const Discord = require('discord.js');
+const client = new Discord.Client();
 const auth = require('./auth.json');
 const fsp = require('fs').promises;
 
@@ -10,184 +9,192 @@ const cardInfo = require('./database/card.json');
 const checkinGetPoints = 200;
 const slotGetPoints = -100;
 
-//設定登入者資料
-logger.remove(logger.transports.Console)
-logger.add(new logger.transports.Console, {
-		colorize: true
-});
-logger.level = 'debug';
-
-//初始化 Discord Bot
-var bot = new Discord.Client({
-		token: auth.token,
-		autorun: true
+client.once('ready', () => {
+    console.log('Ready!');
 });
 
+client.login(auth.token);
 
-bot.on('ready', function (evt) {
-		logger.info('connected');
-		logger.info('Logged in as: ');
-        logger.info(bot.username + '-(' + bot.id + '-');
-});
+let _, commandContent, cmd;
 
-bot.on('message', async function(user, userID, channelID, message, evt){
-        var infoMessage = "";
-        var slotMessage = "";
-        var cardMessage = "";
-        var pointsRankArray = [];
-        var rankNameArray = [];
-        var rankMessage = "Points Board\n";
-        var userLength = 2;
+client.on('message', async message => {
+    var slotMessage = "";
+    var cardMessage = "";
+    var pointsRankArray = [];
+    var rankMessage = "";
+    var userLength = 2;
 
-		//bot 需要知到是否要執行命令
-		if (message.substring(0, 1) == '$'){
-				var args = message.substring(1).split(' ');
-                var cmd = args[0];
-                args = args.splice(1);
+        _, commandContent = message.content.split(' ', 2);
+        cmd = (commandContent[0]).toLowerCase();
+        
+        switch(cmd) {
+            case '$help':
+                //message.channel.send( reply.help+ reply.info + reply.checkin + reply.slot + reply.card + reply.rank)
+                const helpEmbed = new Discord.MessageEmbed()
+                    .setColor('#0099ff')
+                    .setTitle('Command List')
+                    .addFields(
+                        {name: reply.helpTitle, value: reply.helpContext},
+                        {name: reply.infoTitle, value: reply.infoContext},
+                        {name: reply.checkinTitle, value: reply.checkinContext},
+                        {name: reply.slotTitle, value: reply.slotContext},
+                        {name: reply.cardTitle, value: reply.cardContext},
+                        {name: reply.rankTitle, value: reply.rankContext}
+                    )
+                    .setTimestamp();
+                message.channel.send(helpEmbed)
+            break;
             
-            switch(cmd) {
-                case 'help':
-                    bot.sendMessage({
-                        to: channelID,
-                        message: reply.help+ reply.info + reply.checkin + reply.slot + reply.card + reply.rank
-                    });
-                break;
+            case '$info':
+                await fsp.readFile('./database/user.json').then(data =>{
+                    let usersArray = JSON.parse(data);
+            
+                    usersArray.map(item => {
+                        if(item.id == message.author.id){
 
-                case 'info':
-                    await fsp.readFile('./database/user.json').then(data =>{
-                        let usersArray = JSON.parse(data);
-                
-                        usersArray.map(item => {
-                            if(item.id == userID){
-                            
-                                infoMessage += "Username: " + item.name + "\n";
-                                infoMessage += "UserID: " +  item.id + "\n";
-                                infoMessage += "Points: " + item.points + "\n";
-                                infoMessage += "Level: " + item.level + "\n";
+                            const infoEmbed = new Discord.MessageEmbed()
+                                .setColor('#0099ff')
+                                .setTitle(message.author.username + '\'s Info')
+                                .addFields(
+                                    {name: "Username", value: item.name},
+                                    {name: "Level", value: item.level, inline:true},
+                                    {name: "Points", value: item.points, inline:true},
+                                )
+                                .setTimestamp();
+                            message.channel.send(infoEmbed)
 
-                                bot.sendMessage({
-                                    to: channelID,
-                                    message: infoMessage
-                                });
-                            }
-                        })
-                    })
-                break;
-
-                case 'checkin':
-                    await fsp.readFile('./database/user.json').then(data =>{
-                        let usersArray = JSON.parse(data);
-                
-                        usersArray.map(item => {
-                            if(item.id == userID && !item.checkin){
-                                item.points += checkinGetPoints;
-                                item.checkin = true;
-                                fsp.writeFile('./database/user.json', JSON.stringify(usersArray))
-                                bot.sendMessage({
-                                    to: channelID,
-                                    message: reply.successCheckin
-                                });
-                            }else if(item.id == userID && item.checkin){
-                                bot.sendMessage({
-                                    to: channelID,
-                                    message: reply.failCheckin
-                                });
-                            }
-                        })
-
-                    })
-                break;
-
-                case 'slot':
-                    await fsp.readFile('./database/user.json').then(data =>{
-                        let usersArray = JSON.parse(data);
-                
-                        usersArray.map(item => {
-                            if(item.id == userID && item.points > -slotGetPoints){
-                                item.points += slotGetPoints;
-                                slotMessage = slot();
-                                var resultArray = slotMessage.split(' ');
-
-                                bot.sendMessage({
-                                    to: channelID,
-                                    message: reply.successSlot
-                                });
-
-                                if(resultArray[0] == "Points"){
-                                    item.points += parseInt(resultArray[1]);
-                                    bot.sendMessage({
-                                        to: channelID,
-                                        message: reply.slotGetPoints + resultArray[1] + " points"
-                                    });
-                                }else if(resultArray[0] == "Cards"){
-                                    item.card[resultArray[1]] = true;
-
-                                    bot.sendMessage({
-                                        to: channelID,
-                                        message: reply.slotGetCard + (parseInt(resultArray[1])+1)
-                                    });
-                                }
-
-                                fsp.writeFile('./database/user.json', JSON.stringify(usersArray))
-
-                            }else if(item.id == userID && item.points < -slotGetPoints){
-                                bot.sendMessage({
-                                    to: channelID,
-                                    message: reply.failSlot
-                                });
-                            }
-                        })
-                    })
-                break;
-
-                case 'card':
-                    await fsp.readFile('./database/user.json').then(data =>{
-                        let usersArray = JSON.parse(data);
-                
-                        usersArray.map(item => {
-                            if(item.id == userID){
-                                for(var i=0; i<10; i++){
-                                    if(item.card[i]==true){
-                                        cardMessage += " - "+ cardInfo[i].name + "\n";
-                                    }
-                                }
-                                bot.sendMessage({
-                                    to: channelID,
-                                    message: 'You have following cards: \n' + cardMessage
-                                });
-
-                            }
-                        })
-                    })
-                break;
-
-                case 'rank':
-                    await fsp.readFile('./database/user.json').then(data =>{
-                        let usersArray = JSON.parse(data);
-
-                        usersArray.map(item => {
-                            pointsRankArray.push(item.points);
-                            bubbleSort(pointsRankArray);
-                        })
-                        console.log(pointsRankArray);
-
-                        for(var i=0; i< userLength; i++){
-                            usersArray.map(item => {
-                                if(pointsRankArray[i] == item.points){
-                                    rankMessage += "No"+ (i+1) +" "+ item.name;
-                                    rankMessage += " Total: " + pointsRankArray[i] + " Points\n"
-                                }
-                            })
                         }
-                        bot.sendMessage({
-                            to: channelID,
-                            message: rankMessage
-                        });
                     })
-                break;
-            }
+                })
+            break;
+
+            case '$checkin':
+                await fsp.readFile('./database/user.json').then(data =>{
+                    let usersArray = JSON.parse(data);
+            
+                    usersArray.map(item => {
+                        if(item.id == message.author.id && !item.checkin){
+                            item.points += checkinGetPoints;
+                            item.checkin = true;
+                            fsp.writeFile('./database/user.json', JSON.stringify(usersArray))
+                            
+                            const checkinEmbed = new Discord.MessageEmbed()
+                                .setColor('#0099ff')
+                                .setDescription(reply.successCheckin)
+                                .setTimestamp();
+                            message.channel.send(checkinEmbed)
+
+                        }else if(item.id == message.author.id && item.checkin){
+                            const checkinEmbed = new Discord.MessageEmbed()
+                                .setColor('#0099ff')
+                                .setDescription(reply.failCheckin)
+                                .setTimestamp();
+                            message.channel.send(checkinEmbed)
+                        }
+                    })
+
+                })
+            break;
+
+            case '$slot':
+                await fsp.readFile('./database/user.json').then(data =>{
+                    let usersArray = JSON.parse(data);
+                
+                    usersArray.map(item => {
+                        if(item.id == message.author.id && item.points >= -slotGetPoints){
+                            item.points += slotGetPoints;
+                            slotMessage = slot();
+                            var resultArray = slotMessage.split(' ');
+
+
+                            if(resultArray[0] == "Points"){
+                                item.points += parseInt(resultArray[1]);
+
+                                const slotEmbed = new Discord.MessageEmbed()
+                                    .setColor('#0099ff')
+                                    .setDescription(reply.successSlot + '\n' + reply.slotGetPoints + resultArray[1] + " points")
+                                    .setTimestamp();
+                                message.channel.send(slotEmbed)
+
+                            }else if(resultArray[0] == "Cards"){
+                                item.card[resultArray[1]] = true;
+                                var cardNumber = parseInt(resultArray[1]) + 1
+
+                                const slotEmbed = new Discord.MessageEmbed()
+                                    .setColor('#0099ff')
+                                    .setDescription(reply.successSlot + '\n' + reply.slotGetCard + cardNumber)
+                                    .setTimestamp();
+                                message.channel.send(slotEmbed)
+                            }
+
+                            fsp.writeFile('./database/user.json', JSON.stringify(usersArray))
+
+                            }else if(item.id == message.author.id && item.points < -slotGetPoints){
+
+                                const slotEmbed = new Discord.MessageEmbed()
+                                    .setColor('#0099ff')
+                                    .setDescription(reply.failSlot)
+                                    .setTimestamp();
+                                message.channel.send(slotEmbed)
+
+                        }
+                    })
+                })
+            break;
+
+            case '$card':
+                await fsp.readFile('./database/user.json').then(data =>{
+                    let usersArray = JSON.parse(data);
+                
+                    usersArray.map(item => {
+                    if(item.id == message.author.id){
+                            for(var i=0; i<10; i++){
+                                if(item.card[i]==true){
+                                    cardMessage += " - "+ cardInfo[i].name + "\n";
+                                }
+                            }
+
+                            const slotEmbed = new Discord.MessageEmbed()
+                                .setColor('#0099ff')
+                                .setTitle(message.author.username + '\'s Cards')
+                                .setDescription('You have following cards: \n' + cardMessage)
+                                .setTimestamp();
+                            message.channel.send(slotEmbed)
+                        }
+                    })
+                })
+            break;
+
+            case '$rank':
+                await fsp.readFile('./database/user.json').then(data =>{
+                    let usersArray = JSON.parse(data);
+
+                    usersArray.map(item => {
+                        pointsRankArray.push(item.points);
+                        bubbleSort(pointsRankArray);
+                    })
+
+                    for(var i=0; i< userLength; i++){
+                        usersArray.map(item => {
+                            if(pointsRankArray[i] == item.points){
+                                rankMessage += "No"+ (i+1) +" "+ item.name;
+                                rankMessage += " Total: " + pointsRankArray[i] + " Points\n"
+                            }
+                        })
+                    }
+
+                    const slotEmbed = new Discord.MessageEmbed()
+                        .setColor('#0099ff')
+                        .setTitle('Points Leader Board')
+                        .setDescription(rankMessage)
+                        .setTimestamp();
+                    message.channel.send(slotEmbed)
+
+                })
+            break;
         }
-});
+    }
+);
 
 
 function slot(){

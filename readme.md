@@ -1,4 +1,4 @@
-## Freelancer
+## Freelancer-discordBot-template
 
 
 ### Process
