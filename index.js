@@ -21,7 +21,14 @@ setInterval(()=>{
     resetCheckin();
 }, 1000)
 
-
+var newUser = {
+    "name":"",
+    "id":"",
+    "points":0,
+    "level":0,
+    "checkin":false,
+    "card":[false,false,false,false,false,false,false,false,false,false]
+}
 
 client.on('message', async message => {
     var slotMessage = "";
@@ -30,8 +37,29 @@ client.on('message', async message => {
     var rankMessage = "";
     var userLength = 2;
 
-        _, commandContent = message.content.split(' ', 2);
-        cmd = (commandContent[0]).toLowerCase();
+    //create new user
+    await fsp.readFile('./database/user.json').then(data =>{
+        let usersArray = JSON.parse(data);
+
+        if(!message.author.bot){
+            for(var i=0; i< usersArray.length; i++){
+                if(usersArray[i].id  == message.author.id){
+                    break;
+                }else if(usersArray[i].id  != message.author.id && i == usersArray.length-1){
+                    newUser.name = message.author.username;
+                    newUser.id = message.author.id;
+    
+                    usersArray.push(newUser)
+                    console.log("create new user")
+                    break;
+                }
+            }
+            fsp.writeFile('./database/user.json', JSON.stringify(usersArray))
+        }
+    })
+
+    _, commandContent = message.content.split(' ', 2);
+    cmd = (commandContent[0]).toLowerCase();
         
         switch(cmd) {
             case '$help':
@@ -250,3 +278,4 @@ async function resetCheckin(){
         })
     }
 }
+
