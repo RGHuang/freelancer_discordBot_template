@@ -17,6 +17,12 @@ client.login(auth.token);
 
 let _, commandContent, cmd;
 
+setInterval(()=>{
+    resetCheckin();
+}, 1000)
+
+
+
 client.on('message', async message => {
     var slotMessage = "";
     var cardMessage = "";
@@ -225,4 +231,22 @@ function bubbleSort(array) {
         }
     }
     return array;
+}
+
+async function resetCheckin(){
+
+    var hours = new Date().getHours();
+    var minutes = new Date().getMinutes();
+    var seconds = new Date().getSeconds();
+
+    if(hours==0 && minutes==0 && seconds == 0){
+        await fsp.readFile('./database/user.json').then(data =>{
+            let usersArray = JSON.parse(data);
+    
+            usersArray.map(item => {
+                item.checkin = false;
+            })
+            fsp.writeFile('./database/user.json', JSON.stringify(usersArray))
+        })
+    }
 }
